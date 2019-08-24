@@ -28,23 +28,27 @@ module ShopifyGraphQLClient
       result = client.query(*args)
       errors = result.errors
 
-      if result.errors&.any?
-        messages = result.errors.messages.map do |path, messages|
-          if messages.length > 0
-            messages = messages.map{|message| "  - #{message}"}
-            "#{path}:\n" + messages.join("\n")
-          else
-            "#{path}: #{messages.first}"
-          end
-        end
-
-        raise GraphQLError, messages.join("\n")
-      end
-
+      process_errors(result.errors) if result.errors&.any?
+        
       result
     end
 
     private
+
+    def process_errors(errors)
+      errors = errors.messages.map do |path, messages|
+        message = "#{path}: #{messages.join(' -')}"
+        error_type = messages.include?('Throttled') ? :throttled : :standard
+        OpenStruct.new message: message, error_type: error_type
+      end
+
+      error_message = errors.map(&:message).join('\n')
+      if errors.any? { |m| m.error_type == :throttled }
+        raise ThrottledError, error_message
+      else
+        raise GraphQLError, error_message
+      end
+    end
 
     def schema
       @schema ||= load_schema
