@@ -77,7 +77,7 @@ module ShopifyGraphQLClient
 
     def uri
       ShopifyAPI::Base.site.dup.tap do |uri|
-        uri.path = "/admin/api/2020-01/graphql.json"
+        uri.path = "/admin/api/2020-04/graphql.json"
       end
     end
   end
